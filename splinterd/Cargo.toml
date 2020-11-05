@@ -54,6 +54,9 @@ features = [
 [dependencies.splinter]
 path = "../libsplinter"
 features = [
+  "biome-oauth",
+  "oauth",
+  "oauth-github",
   "registry",
   "registry-remote",
   "rest-api",
@@ -63,7 +66,9 @@ features = [
 
 [features]
 default = [
+    "auth",
     "biome",
+    "biome-oauth",
     "biome-credentials",
     "biome-key-management",
 ]
