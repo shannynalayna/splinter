@@ -32,9 +32,9 @@ pub struct AdminServiceEvent {
 /// Native representation of the `AdminServiceEvent` enum variants
 pub enum EventType {
     ProposalSubmitted,
-    ProposalVote { requester: Vec<u8> },
-    ProposalAccepted { requester: Vec<u8> },
-    ProposalRejected { requester: Vec<u8> },
+    ProposalVote { requester: messages::PublicKey },
+    ProposalAccepted { requester: messages::PublicKey },
+    ProposalRejected { requester: messages::PublicKey },
     CircuitReady,
     CircuitDisbanded,
 }
