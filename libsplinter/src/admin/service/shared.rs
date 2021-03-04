@@ -40,6 +40,8 @@ use crate::admin::store::{
 };
 use crate::circuit::routing::{self, RoutingTableWriter};
 use crate::consensus::{Proposal, ProposalId, ProposalUpdate};
+#[cfg(any(feature = "circuit-disband", feature = "circuit-abandon"))]
+use crate::error::InternalError;
 use crate::hex::to_hex;
 use crate::keys::KeyPermissionManager;
 use crate::orchestrator::{ServiceDefinition, ServiceOrchestrator};
@@ -2938,13 +2940,11 @@ impl AdminServiceShared {
     /// the service orchestrator. This may not include all services if they are not supported
     /// locally. It is expected that some services will be stopped externally.
     pub fn stop_services(&mut self, circuit: &Circuit) -> Result<(), AdminSharedError> {
-        let orchestrator =
-            self.orchestrator
-                .lock()
-                .map_err(|_| AdminSharedError::ServiceShutdownFailed {
-                    context: "ServiceOrchestrator lock poisoned".into(),
-                    source: None,
-                })?;
+        let orchestrator = self.orchestrator.lock().map_err(|_| {
+            AdminSharedError::InternalError(InternalError::with_message(
+                "ServiceOrchestrator lock poisoned".into(),
+            ))
+        })?;
 
         // Get all services this node is allowed to run
         let services = circuit
@@ -2969,12 +2969,14 @@ impl AdminServiceShared {
 
             orchestrator
                 .stop_service(&service_definition)
-                .map_err(|err| AdminSharedError::ServiceShutdownFailed {
-                    context: format!(
-                        "Unable to shutdown service {} on circuit {}",
-                        service.service_id, circuit.circuit_id
-                    ),
-                    source: Some(err),
+                .map_err(|err| {
+                    AdminSharedError::InternalError(InternalError::from_source_with_message(
+                        Box::new(err),
+                        format!(
+                            "Unable to shutdown service {} on circuit {}",
+                            service.service_id, circuit.circuit_id
+                        ),
+                    ))
                 })?;
         }
 
@@ -2989,13 +2991,11 @@ impl AdminServiceShared {
         circuit_id: &str,
         services: &[StoreService],
     ) -> Result<(), AdminSharedError> {
-        let orchestrator =
-            self.orchestrator
-                .lock()
-                .map_err(|_| AdminSharedError::ServiceShutdownFailed {
-                    context: "ServiceOrchestrator lock poisoned".into(),
-                    source: None,
-                })?;
+        let orchestrator = self.orchestrator.lock().map_err(|_| {
+            AdminSharedError::InternalError(InternalError::with_message(
+                "ServiceOrchestrator lock poisoned".into(),
+            ))
+        })?;
 
         // Get all services this node is allowed to run
         let purge_results = services

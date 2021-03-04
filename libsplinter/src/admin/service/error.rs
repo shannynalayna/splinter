@@ -17,9 +17,9 @@ use std::fmt;
 
 use crate::admin::store::error::AdminServiceStoreError;
 use crate::consensus::error::ProposalManagerError;
-use crate::orchestrator::InitializeServiceError;
 #[cfg(any(feature = "circuit-disband", feature = "circuit-abandon"))]
-use crate::orchestrator::ShutdownServiceError;
+use crate::error::InternalError;
+use crate::orchestrator::InitializeServiceError;
 use crate::service::error::{ServiceError, ServiceSendError};
 
 use protobuf::error;
@@ -163,11 +163,9 @@ pub enum AdminSharedError {
         context: String,
         source: Option<InitializeServiceError>,
     },
+    /// Represents errors internal to the function
     #[cfg(any(feature = "circuit-disband", feature = "circuit-abandon"))]
-    ServiceShutdownFailed {
-        context: String,
-        source: Option<ShutdownServiceError>,
-    },
+    InternalError(InternalError),
     ServiceSendError(ServiceSendError),
     UnknownAction(String),
     ValidationFailed(String),
@@ -194,13 +192,7 @@ impl Error for AdminSharedError {
                 }
             }
             #[cfg(any(feature = "circuit-disband", feature = "circuit-abandon"))]
-            AdminSharedError::ServiceShutdownFailed { source, .. } => {
-                if let Some(ref err) = source {
-                    Some(err)
-                } else {
-                    None
-                }
-            }
+            AdminSharedError::InternalError(err) => err.source(),
             AdminSharedError::ServiceSendError(err) => Some(err),
             AdminSharedError::UnknownAction(_) => None,
             AdminSharedError::ValidationFailed(_) => None,
@@ -229,13 +221,7 @@ impl fmt::Display for AdminSharedError {
                 }
             }
             #[cfg(any(feature = "circuit-disband", feature = "circuit-abandon"))]
-            AdminSharedError::ServiceShutdownFailed { context, source } => {
-                if let Some(ref err) = source {
-                    write!(f, "{}: {}", context, err)
-                } else {
-                    f.write_str(&context)
-                }
-            }
+            AdminSharedError::InternalError(err) => f.write_str(&err.to_string()),
             AdminSharedError::ServiceSendError(err) => {
                 write!(f, "failed to send service message: {}", err)
             }
